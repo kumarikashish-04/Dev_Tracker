@@ -18,6 +18,11 @@ export default function Settings() {
   const [connectedRepos, setConnectedRepos] = useState([]);
   const [reposLoading, setReposLoading] = useState(true);
 
+  const [githubRepos, setGithubRepos] = useState([]);
+  const [githubReposLoading, setGithubReposLoading] = useState(false);
+  const [githubRepoError, setGithubRepoError] = useState('');
+  const [selectedRepo, setSelectedRepo] = useState(null);
+
   // Load connected repos
   const fetchRepos = async () => {
     try {
@@ -31,10 +36,32 @@ export default function Settings() {
     }
   };
 
+  const fetchGithubRepos = async () => {
+    if (!user?.githubToken) {
+      setGithubRepoError('Add your GitHub PAT first to load repository data.');
+      return;
+    }
+
+    try {
+      setGithubRepoError('');
+      setGithubReposLoading(true);
+      const data = await api.get('/github/repos');
+      setGithubRepos(data);
+    } catch (err) {
+      console.error('Failed to fetch GitHub repositories:', err.message);
+      setGithubRepoError(err.message || 'Failed to load GitHub repositories.');
+    } finally {
+      setGithubReposLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchRepos();
       setGithubToken(user.githubToken || '');
+      if (user.githubToken) {
+        fetchGithubRepos();
+      }
     }
   }, [user]);
 
@@ -220,6 +247,58 @@ export default function Settings() {
                 ) : 'Sync & Connect Repository'}
               </button>
             </form>
+
+            <div className="mt-6">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">GitHub Repositories</h3>
+                <button
+                  type="button"
+                  onClick={fetchGithubRepos}
+                  className="text-slate-300 text-[10px] uppercase tracking-wide font-semibold hover:text-white"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              {githubReposLoading ? (
+                <div className="py-6 text-center text-slate-500 text-xs">Loading GitHub repositories…</div>
+              ) : githubRepoError ? (
+                <div className="p-3 text-[11px] text-red-300 bg-red-950/20 border border-red-900/40 rounded-lg">
+                  {githubRepoError}
+                </div>
+              ) : githubRepos.length === 0 ? (
+                <div className="p-4 text-[11px] text-slate-400 bg-slate-950/50 rounded-xl">
+                  Add your GitHub PAT and click refresh to select from your repositories.
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  {githubRepos.map(repoItem => (
+                    <button
+                      key={repoItem.id}
+                      type="button"
+                      onClick={() => {
+                        setOwner(repoItem.owner);
+                        setRepo(repoItem.name);
+                        setSelectedRepo(repoItem);
+                      }}
+                      className={`w-full text-left p-3 rounded-2xl border transition-all ${
+                        selectedRepo?.id === repoItem.id
+                          ? 'border-sky-500 bg-slate-900/90'
+                          : 'border-slate-800/60 bg-slate-950/50 hover:border-slate-600 hover:bg-slate-900/80'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="font-semibold text-slate-200 text-sm truncate">{repoItem.owner}/{repoItem.name}</div>
+                          <p className="text-[10px] text-slate-500 leading-snug mt-0.5">{repoItem.description || 'No description available'}</p>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-semibold">{repoItem.private ? 'Private' : 'Public'}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

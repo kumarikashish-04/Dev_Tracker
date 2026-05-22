@@ -17,6 +17,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', require('./src/routes/authRoutes'));
+app.use('/api/github', require('./src/routes/githubRoutes'));
 app.use('/api/analytics', require('./src/routes/analyticsRoutes'));
 
 // Basic base route

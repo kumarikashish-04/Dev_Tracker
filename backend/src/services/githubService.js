@@ -1,5 +1,6 @@
 const axios = require('axios');
-const axiosRetry = require('axios-retry');
+const retryModule = require('axios-retry');
+const axiosRetry = retryModule?.default || retryModule;
 
 const GITHUB_API_URL = 'https://api.github.com';
 
@@ -28,7 +29,7 @@ const getHeaders = (token) => {
   };
 
   if (token) {
-    headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `token ${token}`;
   }
 
   return headers;
@@ -58,7 +59,12 @@ const handleGitHubError = (error, customMessage) => {
   }
 
   if (error.response?.status === 403) {
-    throw new Error('GitHub API rate limit exceeded');
+    const message = error.response.data?.message || 'GitHub API rate limit exceeded';
+    throw new Error(
+      message.includes('rate limit')
+        ? 'GitHub API rate limit exceeded. Provide a GitHub PAT or wait before retrying.'
+        : `GitHub API access denied: ${message}`
+    );
   }
 
   if (error.response?.status === 404) {
@@ -280,4 +286,35 @@ module.exports = {
   getRepoPRs,
   getRepoIssues,
   getRepoDetails,
+  // support fetching public repos by username (no token required)
+  getPublicReposByUsername: async (username) => {
+    try {
+      const response = await axios.get(
+        `${GITHUB_API_URL}/users/${username}/repos`,
+        getAxiosConfig(null, {
+          sort: 'updated',
+          per_page: 100,
+        })
+      );
+
+      return response.data.map((repo) => ({
+        id: repo.id,
+        name: repo.name,
+        owner: repo.owner.login,
+        fullName: repo.full_name,
+        description: repo.description,
+        htmlUrl: repo.html_url,
+        private: repo.private,
+        stars: repo.stargazers_count,
+        forks: repo.forks_count,
+        watchers: repo.watchers_count,
+        language: repo.language,
+        defaultBranch: repo.default_branch,
+        createdAt: repo.created_at,
+        updatedAt: repo.updated_at,
+      }));
+    } catch (error) {
+      handleGitHubError(error, 'Failed to fetch public repositories');
+    }
+  },
 };

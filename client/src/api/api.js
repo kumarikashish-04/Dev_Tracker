@@ -25,7 +25,10 @@ const api = {
         headers: getHeaders(),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Something went wrong');
+      if (!response.ok) {
+        const errorDetail = data.error ? `: ${data.error}` : '';
+        throw new Error((data.message || 'Something went wrong') + errorDetail);
+      }
       return data;
     } catch (error) {
       console.error(`API GET ${endpoint} failed:`, error.message);
@@ -41,7 +44,10 @@ const api = {
         body: JSON.stringify(body),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Something went wrong');
+      if (!response.ok) {
+        const errorDetail = data.error ? `: ${data.error}` : '';
+        throw new Error((data.message || 'Something went wrong') + errorDetail);
+      }
       return data;
     } catch (error) {
       console.error(`API POST ${endpoint} failed:`, error.message);
@@ -56,7 +62,10 @@ const api = {
         headers: getHeaders(),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Something went wrong');
+      if (!response.ok) {
+        const errorDetail = data.error ? `: ${data.error}` : '';
+        throw new Error((data.message || 'Something went wrong') + errorDetail);
+      }
       return data;
     } catch (error) {
       console.error(`API DELETE ${endpoint} failed:`, error.message);

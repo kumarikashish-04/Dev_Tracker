@@ -38,7 +38,11 @@ const getUserRepos = async (token) => {
     }));
   } catch (error) {
     console.error('Error fetching user repositories:', error.message);
-    throw new Error(error.response?.data?.message || 'Failed to fetch repositories from GitHub');
+    if (error.response) {
+      console.error('GitHub API Response Status:', error.response.status);
+      console.error('GitHub API Response Data:', error.response.data);
+    }
+    throw new Error(error.response?.data?.message || error.message || 'Failed to fetch repositories from GitHub');
   }
 };
 

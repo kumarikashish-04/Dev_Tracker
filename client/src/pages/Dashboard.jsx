@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import api from '../api/api';
@@ -18,7 +18,7 @@ export default function Dashboard() {
   const [reposLoading, setReposLoading] = useState(false);
 
   // Fetch list of repositories if no repo is selected
-  const fetchReposList = async () => {
+  const fetchReposList = useCallback(async () => {
     try {
       setReposLoading(true);
       const data = await api.get('/analytics/repos');
@@ -28,10 +28,10 @@ export default function Dashboard() {
     } finally {
       setReposLoading(false);
     }
-  };
+  }, []);
 
   // Fetch repository analysis details
-  const fetchAnalysis = async (ownerName, repoName) => {
+  const fetchAnalysis = useCallback(async (ownerName, repoName) => {
     try {
       setLoading(true);
       setError('');
@@ -42,15 +42,19 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (ownerParam && repoParam) {
-      fetchAnalysis(ownerParam, repoParam);
-    } else {
-      fetchReposList();
-    }
-  }, [ownerParam, repoParam]);
+    const loadData = async () => {
+      if (ownerParam && repoParam) {
+        await fetchAnalysis(ownerParam, repoParam);
+      } else {
+        await fetchReposList();
+      }
+    };
+
+    loadData();
+  }, [ownerParam, repoParam, fetchAnalysis, fetchReposList]);
 
   const handleSyncNow = async () => {
     if (!analysis) return;

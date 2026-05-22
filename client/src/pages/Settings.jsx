@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
 import api from '../api/api';
@@ -24,7 +24,7 @@ export default function Settings() {
   const [selectedRepo, setSelectedRepo] = useState(null);
 
   // Load connected repos
-  const fetchRepos = async () => {
+  const fetchRepos = useCallback(async () => {
     try {
       setReposLoading(true);
       const data = await api.get('/analytics/repos');
@@ -34,9 +34,9 @@ export default function Settings() {
     } finally {
       setReposLoading(false);
     }
-  };
+  }, []);
 
-  const fetchGithubRepos = async () => {
+  const fetchGithubRepos = useCallback(async () => {
     if (!user?.githubToken) {
       setGithubRepoError('Add your GitHub PAT first to load repository data.');
       return;
@@ -53,17 +53,21 @@ export default function Settings() {
     } finally {
       setGithubReposLoading(false);
     }
-  };
+  }, [user?.githubToken]);
 
   useEffect(() => {
-    if (user) {
-      fetchRepos();
+    const loadSettings = async () => {
+      if (!user) return;
+
       setGithubToken(user.githubToken || '');
+      await fetchRepos();
       if (user.githubToken) {
-        fetchGithubRepos();
+        await fetchGithubRepos();
       }
-    }
-  }, [user]);
+    };
+
+    loadSettings();
+  }, [user, fetchRepos, fetchGithubRepos]);
 
   const handleSaveToken = async (e) => {
     e.preventDefault();
